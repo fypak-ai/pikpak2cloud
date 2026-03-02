@@ -48,11 +48,48 @@ CLIENT_ID = "YUMx5nI8ZU8Ap8pm"
 CLIENT_SECRET = "dbw2OtmVEeuUvIptb1Copvx5vS60L70I"
 
 
+def pikpak_get_captcha_token(device_id: str, username: str = "") -> str:
+    url = f"{PIKPAK_API}/v1/shield/captcha/init"
+    payload = {
+        "client_id": CLIENT_ID,
+        "action": "POST:/v1/auth/signin",
+        "device_id": device_id,
+        "captcha_token": "",
+        "meta": {"phone_number": username, "email": username},
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0",
+        "X-Device-ID": device_id,
+        "X-Client-ID": CLIENT_ID,
+    }
+    r = requests.post(url, json=payload, headers=headers, timeout=30)
+    data = r.json()
+    return data.get("captcha_token", "")
+
+
 def pikpak_login(username: str, password: str):
+    import uuid
+    device_id = uuid.uuid4().hex
+    captcha_token = pikpak_get_captcha_token(device_id, username)
+
     url = f"{PIKPAK_API}/v1/auth/signin"
-    payload = {"client_id": CLIENT_ID, "client_secret": CLIENT_SECRET,
-               "username": username, "password": password}
-    r = requests.post(url, json=payload, timeout=30)
+    payload = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "username": username,
+        "password": password,
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0",
+        "X-Device-ID": device_id,
+        "X-Client-ID": CLIENT_ID,
+        "X-Captcha-Token": captcha_token,
+        "Referer": "https://pc.mypikpak.com",
+        "Accept": "*/*",
+    }
+    r = requests.post(url, json=payload, headers=headers, timeout=30)
     r.raise_for_status()
     return r.json()
 
