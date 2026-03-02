@@ -65,6 +65,21 @@
     .checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: #7c6bff; }
     .selection-bar { background: #1a1a2e; padding: 8px 16px; display: none; align-items: center; gap: 10px; font-size: 0.85rem; color: #aaa; }
     .selection-bar.visible { display: flex; }
+    /* Modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#1a1a2e; border:1px solid #2a2a4a; border-radius:12px; padding:28px; width:420px; max-width:95vw; }
+    .modal h2 { color:#7c6bff; font-size:1.1rem; margin-bottom:18px; }
+    .modal-tabs { display:flex; gap:4px; margin-bottom:18px; }
+    .modal-tab { flex:1; padding:7px; border-radius:6px; border:none; cursor:pointer; font-size:0.85rem; font-weight:600; background:#2a2a4a; color:#888; transition:all .2s; }
+    .modal-tab.active { background:#7c6bff; color:#fff; }
+    .modal-pane { display:none; }
+    .modal-pane.active { display:block; }
+    .modal label { display:block; font-size:0.8rem; color:#888; margin-bottom:4px; margin-top:12px; }
+    .modal input { width:100%; background:#2a2a2a; border:1px solid #3a3a3a; color:#e0e0e0; padding:9px 12px; border-radius:6px; font-size:0.875rem; }
+    .modal input:focus { outline:none; border-color:#7c6bff; }
+    .modal-actions { display:flex; gap:8px; margin-top:18px; justify-content:flex-end; }
+    .modal-hint { font-size:0.75rem; color:#666; margin-top:8px; line-height:1.5; }
   </style>
 </head>
 <body>
@@ -72,10 +87,43 @@
     <h1>⚡ PikPak Manager</h1>
     <span class="badge" id="conn-status">desconectado</span>
   </header>
-  <div class="token-bar">
-    <input type="text" id="token-input" placeholder="Bearer token do PikPak (cole aqui)" />
-    <button class="btn btn-primary" onclick="connect()">Conectar</button>
+  <div class="token-bar" style="gap:12px">
+    <span id="conn-user" style="font-size:0.85rem;color:#888;flex:1"></span>
+    <button class="btn btn-primary" onclick="openLoginModal()">🔑 Login</button>
     <button class="btn btn-secondary" onclick="disconnect()">Sair</button>
+  </div>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="login-modal" onclick="closeModalOutside(event)">
+    <div class="modal">
+      <h2>🔑 Autenticação PikPak</h2>
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchModalTab('token')">Token Bearer</button>
+        <button class="modal-tab" onclick="switchModalTab('email')">Email + Senha</button>
+      </div>
+
+      <div id="modal-pane-token" class="modal-pane active">
+        <label>Bearer Token</label>
+        <input type="text" id="token-input" placeholder="Cole o token aqui..." />
+        <p class="modal-hint">Copie o token de uma sessão ativa do PikPak (app ou web). Válido por ~2h.</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeLoginModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="connectToken()">Conectar</button>
+        </div>
+      </div>
+
+      <div id="modal-pane-email" class="modal-pane">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" />
+        <label>Senha</label>
+        <input type="password" id="login-password" placeholder="••••••••" />
+        <p class="modal-hint" id="login-error" style="color:#e74c3c;display:none"></p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeLoginModal()">Cancelar</button>
+          <button class="btn btn-primary" id="login-btn" onclick="loginWithEmail()">Entrar</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="container">
     <div id="alert-box"></div>
@@ -132,28 +180,61 @@ let allFiles = [];
 let selectedIds = new Set();
 
 window.onload = () => {
-  if (TOKEN) {
-    document.getElementById('token-input').value = TOKEN;
-    updateStatus(true);
-    loadFiles();
-    loadTasks();
-  }
+  if (TOKEN) { updateStatus(true); loadFiles(); loadTasks(); }
 };
 
-function connect() {
+// ── Modal ──
+function openLoginModal() { document.getElementById('login-modal').classList.add('open'); }
+function closeLoginModal() { document.getElementById('login-modal').classList.remove('open'); }
+function closeModalOutside(e) { if (e.target === document.getElementById('login-modal')) closeLoginModal(); }
+function switchModalTab(tab) {
+  document.querySelectorAll('.modal-tab').forEach((t,i) => t.classList.toggle('active', ['token','email'][i] === tab));
+  document.querySelectorAll('.modal-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('modal-pane-' + tab).classList.add('active');
+}
+
+function connectToken() {
   const t = document.getElementById('token-input').value.trim();
   if (!t) { showAlert('Cole o token primeiro.', 'error'); return; }
   TOKEN = t;
   localStorage.setItem('pikpak_token', TOKEN);
+  closeLoginModal();
   updateStatus(true);
-  loadFiles();
-  loadTasks();
+  loadFiles(); loadTasks();
   showAlert('Conectado!', 'success');
 }
+
+async function loginWithEmail() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if (!email || !pw) { errEl.textContent = 'Preencha email e senha.'; errEl.style.display='block'; return; }
+  btn.textContent = 'Entrando...'; btn.disabled = true; errEl.style.display='none';
+  try {
+    const r = await fetch(API + '/api/auth/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ username: email, password: pw })
+    });
+    const data = await r.json();
+    const token = data.access_token || (data.data && data.data.access_token);
+    if (!token) throw new Error(data.error || data.message || 'Login falhou');
+    TOKEN = token;
+    localStorage.setItem('pikpak_token', TOKEN);
+    closeLoginModal();
+    updateStatus(true);
+    loadFiles(); loadTasks();
+    showAlert('Login realizado!', 'success');
+  } catch(e) {
+    errEl.textContent = String(e); errEl.style.display='block';
+  } finally {
+    btn.textContent = 'Entrar'; btn.disabled = false;
+  }
+}
+
 function disconnect() {
   TOKEN = '';
   localStorage.removeItem('pikpak_token');
-  document.getElementById('token-input').value = '';
   updateStatus(false);
   document.getElementById('file-list-container').innerHTML = '<div class="empty">Conecte-se primeiro.</div>';
 }
@@ -161,6 +242,8 @@ function updateStatus(ok) {
   const el = document.getElementById('conn-status');
   el.textContent = ok ? 'conectado' : 'desconectado';
   el.style.color = ok ? '#4caf50' : '#e74c3c';
+  const userEl = document.getElementById('conn-user');
+  if (userEl) userEl.textContent = ok ? 'Token ativo' : '';
 }
 function switchTab(name) {
   const panels = ['files','offline','tasks'];
