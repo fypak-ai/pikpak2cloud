@@ -36,7 +36,7 @@ python app.py
 ## Features
 
 - 📁 Navegação de arquivos e pastas
-- ⬇️ Download offline (HTTP, torrent, magnet)
+- ⬇️ Download offline (HTTP, magnet links)
 - 🗑️ Exclusão de arquivos (individual ou em lote)
 - 📋 Fila de tarefas (banco de dados PostgreSQL ou SQLite)
 - 🔒 Autenticação via token Bearer
