@@ -104,11 +104,11 @@
       <div class="add-task-form">
         <h3>⬇️ Adicionar Download Offline</h3>
         <div class="row">
-          <input type="text" id="offline-url" placeholder="URL do torrent / magnet / arquivo direto" />
+          <input type="text" id="offline-url" placeholder="URL de download direto / magnet link" />
           <button class="btn btn-primary" onclick="addOfflineDownload()">Adicionar</button>
         </div>
       </div>
-      <p style="color:#666;font-size:0.85rem;padding:0 4px">Suporta HTTP, torrent e magnet links. O arquivo será salvo diretamente no seu PikPak.</p>
+      <p style="color:#666;font-size:0.85rem;padding:0 4px">Suporta HTTP e magnet links. O arquivo será salvo diretamente no seu PikPak.</p>
     </div>
 
     <div id="panel-tasks" class="panel">
@@ -286,7 +286,7 @@ function showAlert(msg, type, ms) {
   setTimeout(() => { el.innerHTML = ''; }, ms);
 }
 function fmtSize(b) { if (!b) return '—'; const u=['B','KB','MB','GB','TB']; let i=0,v=b; while(v>=1024&&i<4){v/=1024;i++;} return v.toFixed(1)+' '+u[i]; }
-function fileIcon(n) { const e=(n.split('.').pop()||'').toLowerCase(); const m={mp4:'🎬',mkv:'🎬',avi:'🎬',mov:'🎬',mp3:'🎵',flac:'🎵',wav:'🎵',jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',pdf:'📄',zip:'📦',rar:'📦',torrent:'🧲'}; return m[e]||'📄'; }
+function fileIcon(n) { const e=(n.split('.').pop()||'').toLowerCase(); const m={mp4:'🎬',mkv:'🎬',avi:'🎬',mov:'🎬',mp3:'🎵',flac:'🎵',wav:'🎵',jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',pdf:'📄',zip:'📦',rar:'📦'}; return m[e]||'📄'; }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 </body>
