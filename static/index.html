@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PikPak Manager</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; }
+    header { background: #1a1a2e; padding: 16px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #2a2a4a; }
+    header h1 { font-size: 1.3rem; color: #7c6bff; font-weight: 700; }
+    .badge { background: #2a2a4a; color: #aaa; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; }
+    .token-bar { background: #1e1e1e; padding: 12px 24px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #2a2a2a; }
+    .token-bar input { flex: 1; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-family: monospace; }
+    .token-bar input:focus { outline: none; border-color: #7c6bff; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #7c6bff; color: #fff; }
+    .btn-danger { background: #e74c3c; color: #fff; }
+    .btn-secondary { background: #2a2a4a; color: #ccc; }
+    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tab { padding: 8px 18px; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.9rem; color: #888; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab.active { color: #7c6bff; border-bottom-color: #7c6bff; background: #1a1a2e; }
+    .tab:hover { color: #ccc; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .file-browser { background: #1a1a1a; border-radius: 10px; overflow: hidden; }
+    .breadcrumb { padding: 12px 16px; background: #2a2a2a; display: flex; gap: 6px; align-items: center; font-size: 0.85rem; color: #aaa; flex-wrap: wrap; }
+    .breadcrumb span { cursor: pointer; color: #7c6bff; }
+    .breadcrumb span:hover { text-decoration: underline; }
+    .breadcrumb .sep { color: #555; }
+    .toolbar { padding: 12px 16px; background: #1e1e1e; display: flex; gap: 8px; align-items: center; }
+    .toolbar input { flex: 1; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; }
+    .toolbar input:focus { outline: none; border-color: #7c6bff; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 10px 16px; background: #1e1e1e; color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #2a2a2a; }
+    td { padding: 10px 16px; border-bottom: 1px solid #1e1e1e; font-size: 0.875rem; vertical-align: middle; }
+    tr:hover td { background: #222; }
+    .folder-name { color: #7c6bff; cursor: pointer; font-weight: 600; }
+    .folder-name:hover { text-decoration: underline; }
+    .size { color: #888; font-size: 0.8rem; }
+    .actions { display: flex; gap: 6px; }
+    .empty { padding: 40px; text-align: center; color: #555; font-size: 0.9rem; }
+    .loading { padding: 40px; text-align: center; color: #7c6bff; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #333; border-top-color: #7c6bff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .add-task-form { background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+    .add-task-form h3 { margin-bottom: 12px; color: #7c6bff; font-size: 1rem; }
+    .add-task-form .row { display: flex; gap: 8px; }
+    .add-task-form input { flex: 1; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 10px 14px; border-radius: 6px; font-size: 0.875rem; }
+    .add-task-form input:focus { outline: none; border-color: #7c6bff; }
+    .task-list { background: #1a1a1a; border-radius: 10px; overflow: hidden; }
+    .task-item { padding: 14px 16px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; }
+    .task-item:last-child { border-bottom: none; }
+    .task-item .task-url { flex: 1; font-size: 0.85rem; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .status-draft { background: #2a2a1a; color: #f0a500; }
+    .status-published { background: #1a2a1a; color: #4caf50; }
+    .alert { padding: 10px 16px; border-radius: 6px; margin: 10px 0; font-size: 0.875rem; }
+    .alert-success { background: #1a2a1a; color: #4caf50; border-left: 3px solid #4caf50; }
+    .alert-error { background: #2a1a1a; color: #e74c3c; border-left: 3px solid #e74c3c; }
+    .alert-info { background: #1a1a2a; color: #7c6bff; border-left: 3px solid #7c6bff; }
+    .checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: #7c6bff; }
+    .selection-bar { background: #1a1a2e; padding: 8px 16px; display: none; align-items: center; gap: 10px; font-size: 0.85rem; color: #aaa; }
+    .selection-bar.visible { display: flex; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚡ PikPak Manager</h1>
+    <span class="badge" id="conn-status">desconectado</span>
+  </header>
+  <div class="token-bar">
+    <input type="text" id="token-input" placeholder="Bearer token do PikPak (cole aqui)" />
+    <button class="btn btn-primary" onclick="connect()">Conectar</button>
+    <button class="btn btn-secondary" onclick="disconnect()">Sair</button>
+  </div>
+  <div class="container">
+    <div id="alert-box"></div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('files')">📁 Arquivos</div>
+      <div class="tab" onclick="switchTab('offline')">⬇️ Download Offline</div>
+      <div class="tab" onclick="switchTab('tasks')">📋 Fila de Tarefas</div>
+    </div>
+
+    <div id="panel-files" class="panel active">
+      <div class="file-browser">
+        <div class="breadcrumb" id="breadcrumb"><span onclick="navigateTo('', 'Root')">🏠 Root</span></div>
+        <div class="toolbar">
+          <input type="text" id="search-input" placeholder="Filtrar por nome..." oninput="filterFiles()" />
+          <button class="btn btn-secondary btn-sm" onclick="loadFiles()">↻ Atualizar</button>
+        </div>
+        <div class="selection-bar" id="sel-bar">
+          <span id="sel-count">0 selecionado(s)</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑 Excluir selecionados</button>
+        </div>
+        <div id="file-list-container"><div class="empty">Conecte-se primeiro para ver os arquivos.</div></div>
+      </div>
+    </div>
+
+    <div id="panel-offline" class="panel">
+      <div class="add-task-form">
+        <h3>⬇️ Adicionar Download Offline</h3>
+        <div class="row">
+          <input type="text" id="offline-url" placeholder="URL do torrent / magnet / arquivo direto" />
+          <button class="btn btn-primary" onclick="addOfflineDownload()">Adicionar</button>
+        </div>
+      </div>
+      <p style="color:#666;font-size:0.85rem;padding:0 4px">Suporta HTTP, torrent e magnet links. O arquivo será salvo diretamente no seu PikPak.</p>
+    </div>
+
+    <div id="panel-tasks" class="panel">
+      <div class="add-task-form">
+        <h3>📋 Adicionar tarefa na fila</h3>
+        <div class="row">
+          <input type="text" id="task-url" placeholder="URL##nome_do_arquivo" />
+          <button class="btn btn-primary" onclick="addTask()">Enfileirar</button>
+        </div>
+      </div>
+      <div id="task-list-container"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
+    </div>
+  </div>
+
+<script>
+const API = '';
+let TOKEN = localStorage.getItem('pikpak_token') || '';
+let currentParentId = '';
+let breadcrumbStack = [];
+let allFiles = [];
+let selectedIds = new Set();
+
+window.onload = () => {
+  if (TOKEN) {
+    document.getElementById('token-input').value = TOKEN;
+    updateStatus(true);
+    loadFiles();
+    loadTasks();
+  }
+};
+
+function connect() {
+  const t = document.getElementById('token-input').value.trim();
+  if (!t) { showAlert('Cole o token primeiro.', 'error'); return; }
+  TOKEN = t;
+  localStorage.setItem('pikpak_token', TOKEN);
+  updateStatus(true);
+  loadFiles();
+  loadTasks();
+  showAlert('Conectado!', 'success');
+}
+function disconnect() {
+  TOKEN = '';
+  localStorage.removeItem('pikpak_token');
+  document.getElementById('token-input').value = '';
+  updateStatus(false);
+  document.getElementById('file-list-container').innerHTML = '<div class="empty">Conecte-se primeiro.</div>';
+}
+function updateStatus(ok) {
+  const el = document.getElementById('conn-status');
+  el.textContent = ok ? 'conectado' : 'desconectado';
+  el.style.color = ok ? '#4caf50' : '#e74c3c';
+}
+function switchTab(name) {
+  const panels = ['files','offline','tasks'];
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', panels[i] === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'tasks') loadTasks();
+}
+async function loadFiles(parentId) {
+  if (parentId === undefined) parentId = currentParentId;
+  if (!TOKEN) return;
+  currentParentId = parentId;
+  document.getElementById('file-list-container').innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
+  selectedIds.clear(); updateSelBar();
+  try {
+    const r = await fetch(API + '/api/files?parent_id=' + encodeURIComponent(parentId), { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const data = await r.json();
+    if (data.error) { showAlert(data.error, 'error'); return; }
+    allFiles = data.files || [];
+    renderFiles(allFiles);
+  } catch(e) { showAlert('Erro: ' + e, 'error'); }
+}
+function navigateTo(id, name) {
+  if (id === '') { breadcrumbStack = []; }
+  else { breadcrumbStack.push({ id, name }); }
+  renderBreadcrumb();
+  loadFiles(id);
+}
+function navTo(idx) {
+  breadcrumbStack = breadcrumbStack.slice(0, idx + 1);
+  renderBreadcrumb();
+  loadFiles(breadcrumbStack[idx].id);
+}
+function renderBreadcrumb() {
+  const el = document.getElementById('breadcrumb');
+  let html = '<span onclick="navigateTo(\'\',' + "'Root'" + ')">🏠 Root</span>';
+  breadcrumbStack.forEach((b, i) => {
+    html += '<span class="sep">/</span>';
+    if (i < breadcrumbStack.length - 1) html += '<span onclick="navTo(' + i + ')">' + esc(b.name) + '</span>';
+    else html += '<span style="color:#e0e0e0">' + esc(b.name) + '</span>';
+  });
+  el.innerHTML = html;
+}
+function filterFiles() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  renderFiles(allFiles.filter(f => f.name.toLowerCase().includes(q)));
+}
+function renderFiles(files) {
+  if (!files.length) { document.getElementById('file-list-container').innerHTML = '<div class="empty">Pasta vazia.</div>'; return; }
+  const rows = files.map(f => {
+    const isFolder = f.kind === 'drive#folder';
+    const icon = isFolder ? '📁' : fileIcon(f.name);
+    const size = f.size ? fmtSize(parseInt(f.size)) : '—';
+    const nameEl = isFolder
+      ? '<span class="folder-name" onclick="navigateTo(\'' + f.id + '\',\'' + esc(f.name) + '\')">' + icon + ' ' + esc(f.name) + '</span>'
+      : '<span>' + icon + ' ' + esc(f.name) + '</span>';
+    const dl = !isFolder ? '<button class="btn btn-secondary btn-sm" onclick="openDownload(\'' + f.id + '\')">⬇</button>' : '';
+    return '<tr><td><input type="checkbox" class="checkbox" onchange="toggleSel(\'' + f.id + '\',this)"/></td><td>' + nameEl + '</td><td class="size">' + size + '</td><td><div class="actions">' + dl + '<button class="btn btn-danger btn-sm" onclick="delSingle(\'' + f.id + '\')">🗑</button></div></td></tr>';
+  }).join('');
+  document.getElementById('file-list-container').innerHTML = '<table><thead><tr><th><input type="checkbox" class="checkbox" onchange="selAll(this)"/></th><th>Nome</th><th>Tamanho</th><th>Ações</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+function toggleSel(id, cb) { if (cb.checked) selectedIds.add(id); else selectedIds.delete(id); updateSelBar(); }
+function selAll(cb) { document.querySelectorAll('tbody .checkbox').forEach(c => { c.checked = cb.checked; }); if (cb.checked) allFiles.forEach(f => selectedIds.add(f.id)); else selectedIds.clear(); updateSelBar(); }
+function updateSelBar() { const bar = document.getElementById('sel-bar'); bar.classList.toggle('visible', selectedIds.size > 0); document.getElementById('sel-count').textContent = selectedIds.size + ' selecionado(s)'; }
+async function deleteSelected() { if (!selectedIds.size) return; if (!confirm('Excluir ' + selectedIds.size + ' item(ns)?')) return; await delIds([...selectedIds]); }
+async function delSingle(id) { if (!confirm('Excluir este item?')) return; await delIds([id]); }
+async function delIds(ids) {
+  try {
+    const r = await fetch(API + '/api/files/delete', { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+    const data = await r.json();
+    if (data.error) { showAlert(data.error, 'error'); return; }
+    showAlert('Excluído!', 'success'); loadFiles();
+  } catch(e) { showAlert('Erro: ' + e, 'error'); }
+}
+async function openDownload(fileId) {
+  try {
+    const r = await fetch(API + '/api/files/' + fileId + '/download', { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const data = await r.json();
+    const url = data && (data.web_content_link || (data.medias && data.medias[0] && data.medias[0].link && data.medias[0].link.url));
+    if (url) window.open(url, '_blank'); else showAlert('Link não disponível.', 'error');
+  } catch(e) { showAlert('Erro: ' + e, 'error'); }
+}
+async function addOfflineDownload() {
+  if (!TOKEN) { showAlert('Conecte primeiro.', 'error'); return; }
+  const url = document.getElementById('offline-url').value.trim();
+  if (!url) { showAlert('Cole a URL.', 'error'); return; }
+  try {
+    const r = await fetch(API + '/api/offline', { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+    const data = await r.json();
+    if (data.error) { showAlert(data.error, 'error'); return; }
+    document.getElementById('offline-url').value = '';
+    showAlert('Download offline adicionado!', 'success');
+  } catch(e) { showAlert('Erro: ' + e, 'error'); }
+}
+async function loadTasks() {
+  const c = document.getElementById('task-list-container');
+  if (!c) return;
+  try {
+    const r = await fetch(API + '/api/tasks');
+    const tasks = await r.json();
+    if (!tasks.length) { c.innerHTML = '<div class="empty">Nenhuma tarefa.</div>'; return; }
+    c.innerHTML = '<div class="task-list">' + tasks.map(t => '<div class="task-item"><span class="status-badge status-' + t.status + '">' + t.status + '</span><span class="task-url" title="' + esc(t.url) + '">' + esc(t.url) + '</span><span style="font-size:0.75rem;color:#555">' + (t.date_created ? new Date(t.date_created).toLocaleString('pt-BR') : '') + '</span><button class="btn btn-danger btn-sm" onclick="deleteTask(' + t.id + ')">🗑</button></div>').join('') + '</div>';
+  } catch(e) { c.innerHTML = '<div class="empty">Erro ao carregar.</div>'; }
+}
+async function addTask() {
+  const url = document.getElementById('task-url').value.trim();
+  if (!url) { showAlert('URL necessária.', 'error'); return; }
+  try {
+    const r = await fetch(API + '/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+    const data = await r.json();
+    if (data.error) { showAlert(data.error, 'error'); return; }
+    document.getElementById('task-url').value = '';
+    showAlert('Tarefa adicionada!', 'success'); loadTasks();
+  } catch(e) { showAlert('Erro: ' + e, 'error'); }
+}
+async function deleteTask(id) {
+  try { await fetch(API + '/api/tasks/' + id, { method: 'DELETE' }); loadTasks(); } catch(e) {}
+}
+function showAlert(msg, type, ms) {
+  if (!ms) ms = 4000;
+  const el = document.getElementById('alert-box');
+  el.innerHTML = '<div class="alert alert-' + type + '">' + msg + '</div>';
+  setTimeout(() => { el.innerHTML = ''; }, ms);
+}
+function fmtSize(b) { if (!b) return '—'; const u=['B','KB','MB','GB','TB']; let i=0,v=b; while(v>=1024&&i<4){v/=1024;i++;} return v.toFixed(1)+' '+u[i]; }
+function fileIcon(n) { const e=(n.split('.').pop()||'').toLowerCase(); const m={mp4:'🎬',mkv:'🎬',avi:'🎬',mov:'🎬',mp3:'🎵',flac:'🎵',wav:'🎵',jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',pdf:'📄',zip:'📦',rar:'📦',torrent:'🧲'}; return m[e]||'📄'; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
