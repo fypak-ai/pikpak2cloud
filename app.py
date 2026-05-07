@@ -335,6 +335,23 @@ def do_transfer(transfer_id: int, pikpak_token: str, dropbox_token: str):
         db.close()
 
 
+# ─── Custom error handlers (always return JSON) ──
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"error": "Not Found", "path": request.path}), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"error": "Method Not Allowed"}), 405
+
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({"error": "Internal Server Error", "detail": str(e)}), 500
+
+
 # ─── Routes ─────────────────────────────────────
 
 @app.route("/")
