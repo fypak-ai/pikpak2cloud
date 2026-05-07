@@ -3,94 +3,118 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PikPak Manager</title>
+  <title>PikPak → Dropbox</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; }
     header { background: #1a1a2e; padding: 16px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #2a2a4a; }
     header h1 { font-size: 1.3rem; color: #7c6bff; font-weight: 700; }
     .badge { background: #2a2a4a; color: #aaa; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; }
-    .token-bar { background: #1e1e1e; padding: 12px 24px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #2a2a2a; }
-    .token-bar input { flex: 1; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-family: monospace; }
+    .token-bar { background: #1e1e1e; padding: 10px 24px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; }
+    .token-bar label { font-size: 0.78rem; color: #888; white-space: nowrap; }
+    .token-bar input { flex: 1; min-width: 180px; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 7px 11px; border-radius: 6px; font-size: 0.82rem; font-family: monospace; }
     .token-bar input:focus { outline: none; border-color: #7c6bff; }
-    .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: opacity 0.2s; }
-    .btn:hover { opacity: 0.85; }
+    .token-bar .sep { width: 1px; height: 28px; background: #333; margin: 0 4px; }
+    .btn { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.82rem; font-weight: 600; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.82; }
     .btn-primary { background: #7c6bff; color: #fff; }
     .btn-danger { background: #e74c3c; color: #fff; }
     .btn-secondary { background: #2a2a4a; color: #ccc; }
-    .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
-    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .btn-dropbox { background: #0061ff; color: #fff; }
+    .btn-sm { padding: 4px 9px; font-size: 0.74rem; }
+    .container { max-width: 1150px; margin: 0 auto; padding: 22px; }
     .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
-    .tab { padding: 8px 18px; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.9rem; color: #888; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab { padding: 8px 18px; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.88rem; color: #888; border-bottom: 2px solid transparent; transition: all 0.2s; }
     .tab.active { color: #7c6bff; border-bottom-color: #7c6bff; background: #1a1a2e; }
     .tab:hover { color: #ccc; }
     .panel { display: none; }
     .panel.active { display: block; }
     .file-browser { background: #1a1a1a; border-radius: 10px; overflow: hidden; }
-    .breadcrumb { padding: 12px 16px; background: #2a2a2a; display: flex; gap: 6px; align-items: center; font-size: 0.85rem; color: #aaa; flex-wrap: wrap; }
+    .breadcrumb { padding: 10px 16px; background: #2a2a2a; display: flex; gap: 6px; align-items: center; font-size: 0.83rem; color: #aaa; flex-wrap: wrap; }
     .breadcrumb span { cursor: pointer; color: #7c6bff; }
     .breadcrumb span:hover { text-decoration: underline; }
     .breadcrumb .sep { color: #555; }
-    .toolbar { padding: 12px 16px; background: #1e1e1e; display: flex; gap: 8px; align-items: center; }
-    .toolbar input { flex: 1; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; }
+    .toolbar { padding: 10px 16px; background: #1e1e1e; display: flex; gap: 8px; align-items: center; }
+    .toolbar input { flex: 1; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 7px 11px; border-radius: 6px; font-size: 0.83rem; }
     .toolbar input:focus { outline: none; border-color: #7c6bff; }
     table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; padding: 10px 16px; background: #1e1e1e; color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #2a2a2a; }
-    td { padding: 10px 16px; border-bottom: 1px solid #1e1e1e; font-size: 0.875rem; vertical-align: middle; }
+    th { text-align: left; padding: 9px 14px; background: #1e1e1e; color: #888; font-size: 0.77rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #2a2a2a; }
+    td { padding: 9px 14px; border-bottom: 1px solid #1e1e1e; font-size: 0.855rem; vertical-align: middle; }
     tr:hover td { background: #222; }
     .folder-name { color: #7c6bff; cursor: pointer; font-weight: 600; }
     .folder-name:hover { text-decoration: underline; }
-    .size { color: #888; font-size: 0.8rem; }
-    .actions { display: flex; gap: 6px; }
-    .empty { padding: 40px; text-align: center; color: #555; font-size: 0.9rem; }
+    .size { color: #888; font-size: 0.78rem; }
+    .actions { display: flex; gap: 5px; }
+    .empty { padding: 40px; text-align: center; color: #555; font-size: 0.88rem; }
     .loading { padding: 40px; text-align: center; color: #7c6bff; }
-    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #333; border-top-color: #7c6bff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #333; border-top-color: #7c6bff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 7px; vertical-align: middle; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .add-task-form { background: #1a1a2e; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-    .add-task-form h3 { margin-bottom: 12px; color: #7c6bff; font-size: 1rem; }
+    .add-task-form { background: #1a1a2e; padding: 18px; border-radius: 10px; margin-bottom: 18px; }
+    .add-task-form h3 { margin-bottom: 11px; color: #7c6bff; font-size: 0.95rem; }
     .add-task-form .row { display: flex; gap: 8px; }
-    .add-task-form input { flex: 1; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 10px 14px; border-radius: 6px; font-size: 0.875rem; }
+    .add-task-form input { flex: 1; background: #2a2a2a; border: 1px solid #3a3a3a; color: #e0e0e0; padding: 9px 12px; border-radius: 6px; font-size: 0.855rem; }
     .add-task-form input:focus { outline: none; border-color: #7c6bff; }
     .task-list { background: #1a1a1a; border-radius: 10px; overflow: hidden; }
-    .task-item { padding: 14px 16px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; }
+    .task-item { padding: 13px 15px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 11px; }
     .task-item:last-child { border-bottom: none; }
-    .task-item .task-url { flex: 1; font-size: 0.85rem; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
-    .status-draft { background: #2a2a1a; color: #f0a500; }
-    .status-published { background: #1a2a1a; color: #4caf50; }
-    .alert { padding: 10px 16px; border-radius: 6px; margin: 10px 0; font-size: 0.875rem; }
+    .task-item .task-url { flex: 1; font-size: 0.83rem; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.73rem; font-weight: 600; white-space: nowrap; }
+    .status-draft     { background: #2a2a1a; color: #f0a500; }
+    .status-pending    { background: #1a1a2a; color: #7c6bff; }
+    .status-transferring { background: #1a2230; color: #4fc3f7; }
+    .status-done      { background: #1a2a1a; color: #4caf50; }
+    .status-error     { background: #2a1a1a; color: #e74c3c; }
+    .alert { padding: 9px 15px; border-radius: 6px; margin: 8px 0; font-size: 0.855rem; }
     .alert-success { background: #1a2a1a; color: #4caf50; border-left: 3px solid #4caf50; }
-    .alert-error { background: #2a1a1a; color: #e74c3c; border-left: 3px solid #e74c3c; }
-    .alert-info { background: #1a1a2a; color: #7c6bff; border-left: 3px solid #7c6bff; }
-    .checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: #7c6bff; }
-    .selection-bar { background: #1a1a2e; padding: 8px 16px; display: none; align-items: center; gap: 10px; font-size: 0.85rem; color: #aaa; }
+    .alert-error   { background: #2a1a1a; color: #e74c3c; border-left: 3px solid #e74c3c; }
+    .alert-info    { background: #1a1a2a; color: #7c6bff; border-left: 3px solid #7c6bff; }
+    .checkbox { width: 14px; height: 14px; cursor: pointer; accent-color: #7c6bff; }
+    .selection-bar { background: #1a1a2e; padding: 7px 15px; display: none; align-items: center; gap: 10px; font-size: 0.83rem; color: #aaa; }
     .selection-bar.visible { display: flex; }
-    /* Modal */
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; align-items:center; justify-content:center; }
+    /* Modals */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:1000; align-items:center; justify-content:center; }
     .modal-overlay.open { display:flex; }
-    .modal { background:#1a1a2e; border:1px solid #2a2a4a; border-radius:12px; padding:28px; width:420px; max-width:95vw; }
-    .modal h2 { color:#7c6bff; font-size:1.1rem; margin-bottom:18px; }
-    .modal-tabs { display:flex; gap:4px; margin-bottom:18px; }
-    .modal-tab { flex:1; padding:7px; border-radius:6px; border:none; cursor:pointer; font-size:0.85rem; font-weight:600; background:#2a2a4a; color:#888; transition:all .2s; }
+    .modal { background:#1a1a2e; border:1px solid #2a2a4a; border-radius:12px; padding:26px; width:440px; max-width:96vw; }
+    .modal h2 { color:#7c6bff; font-size:1.05rem; margin-bottom:16px; }
+    .modal-tabs { display:flex; gap:4px; margin-bottom:16px; }
+    .modal-tab { flex:1; padding:7px; border-radius:6px; border:none; cursor:pointer; font-size:0.83rem; font-weight:600; background:#2a2a4a; color:#888; transition:all .2s; }
     .modal-tab.active { background:#7c6bff; color:#fff; }
     .modal-pane { display:none; }
     .modal-pane.active { display:block; }
-    .modal label { display:block; font-size:0.8rem; color:#888; margin-bottom:4px; margin-top:12px; }
-    .modal input { width:100%; background:#2a2a2a; border:1px solid #3a3a3a; color:#e0e0e0; padding:9px 12px; border-radius:6px; font-size:0.875rem; }
+    .modal label { display:block; font-size:0.78rem; color:#888; margin-bottom:4px; margin-top:11px; }
+    .modal input { width:100%; background:#2a2a2a; border:1px solid #3a3a3a; color:#e0e0e0; padding:8px 11px; border-radius:6px; font-size:0.855rem; }
     .modal input:focus { outline:none; border-color:#7c6bff; }
-    .modal-actions { display:flex; gap:8px; margin-top:18px; justify-content:flex-end; }
-    .modal-hint { font-size:0.75rem; color:#666; margin-top:8px; line-height:1.5; }
+    .modal-actions { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+    .modal-hint { font-size:0.73rem; color:#666; margin-top:7px; line-height:1.5; }
+    /* Transfer list */
+    .xfer-item { padding: 12px 15px; border-bottom: 1px solid #222; display: flex; align-items: flex-start; gap: 11px; }
+    .xfer-item:last-child { border-bottom: none; }
+    .xfer-info { flex: 1; min-width: 0; }
+    .xfer-name { font-size: 0.855rem; color: #e0e0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .xfer-dest { font-size: 0.75rem; color: #888; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .xfer-err  { font-size: 0.75rem; color: #e74c3c; margin-top: 3px; }
+    .xfer-ts   { font-size: 0.73rem; color: #555; white-space: nowrap; }
+    .dbox-connected { font-size: 0.8rem; color: #0061ff; font-weight: 600; }
+    .dbox-disconnected { font-size: 0.8rem; color: #888; }
   </style>
 </head>
 <body>
   <header>
-    <h1>⚡ PikPak Manager</h1>
+    <h1>⚡ PikPak → Dropbox</h1>
     <span class="badge" id="conn-status">desconectado</span>
+    <span class="badge dbox-disconnected" id="dbox-status">Dropbox: —</span>
   </header>
-  <div class="token-bar" style="gap:12px">
-    <span id="conn-user" style="font-size:0.85rem;color:#888;flex:1"></span>
-    <button class="btn btn-primary" onclick="openLoginModal()">🔑 Login</button>
-    <button class="btn btn-secondary" onclick="disconnect()">Sair</button>
+
+  <!-- Token bar -->
+  <div class="token-bar">
+    <label>PikPak</label>
+    <span id="conn-user" style="font-size:0.82rem;color:#888"></span>
+    <button class="btn btn-primary btn-sm" onclick="openLoginModal()">🔑 Login PikPak</button>
+    <button class="btn btn-secondary btn-sm" onclick="disconnect()">Sair</button>
+    <div class="sep"></div>
+    <label>Dropbox Token</label>
+    <input type="password" id="dbox-token-input" placeholder="Token de acesso Dropbox..." />
+    <button class="btn btn-dropbox btn-sm" onclick="saveDboxToken()">Salvar</button>
   </div>
 
   <!-- Login Modal -->
@@ -101,7 +125,6 @@
         <button class="modal-tab active" onclick="switchModalTab('token')">Token Bearer</button>
         <button class="modal-tab" onclick="switchModalTab('email')">Email + Senha</button>
       </div>
-
       <div id="modal-pane-token" class="modal-pane active">
         <label>Bearer Token</label>
         <input type="text" id="token-input" placeholder="Cole o token aqui..." />
@@ -111,7 +134,6 @@
           <button class="btn btn-primary" onclick="connectToken()">Conectar</button>
         </div>
       </div>
-
       <div id="modal-pane-email" class="modal-pane">
         <label>Email</label>
         <input type="email" id="login-email" placeholder="seu@email.com" />
@@ -125,14 +147,35 @@
       </div>
     </div>
   </div>
+
+  <!-- Send to Dropbox Modal -->
+  <div class="modal-overlay" id="dropbox-modal" onclick="closeDropboxModalOutside(event)">
+    <div class="modal">
+      <h2>📤 Enviar para Dropbox</h2>
+      <input type="hidden" id="dbox-file-id" />
+      <input type="hidden" id="dbox-file-size" />
+      <label>Arquivo</label>
+      <input type="text" id="dbox-file-name-display" readonly style="color:#aaa" />
+      <label>Destino no Dropbox</label>
+      <input type="text" id="dbox-dest-path" placeholder="/PikPak/nome-do-arquivo" />
+      <p class="modal-hint">O arquivo será enviado diretamente do PikPak para o Dropbox via streaming. Arquivos grandes podem levar alguns minutos.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeDropboxModal()">Cancelar</button>
+        <button class="btn btn-dropbox" id="dbox-send-btn" onclick="confirmSendDropbox()">📤 Enviar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
     <div id="alert-box"></div>
     <div class="tabs">
       <div class="tab active" onclick="switchTab('files')">📁 Arquivos</div>
       <div class="tab" onclick="switchTab('offline')">⬇️ Download Offline</div>
-      <div class="tab" onclick="switchTab('tasks')">📋 Fila de Tarefas</div>
+      <div class="tab" onclick="switchTab('transfers')">☁️ Transferências</div>
+      <div class="tab" onclick="switchTab('tasks')">📋 Tarefas</div>
     </div>
 
+    <!-- Files panel -->
     <div id="panel-files" class="panel active">
       <div class="file-browser">
         <div class="breadcrumb" id="breadcrumb"><span onclick="navigateTo('', 'Root')">🏠 Root</span></div>
@@ -148,6 +191,7 @@
       </div>
     </div>
 
+    <!-- Offline download panel -->
     <div id="panel-offline" class="panel">
       <div class="add-task-form">
         <h3>⬇️ Adicionar Download Offline</h3>
@@ -156,9 +200,19 @@
           <button class="btn btn-primary" onclick="addOfflineDownload()">Adicionar</button>
         </div>
       </div>
-      <p style="color:#666;font-size:0.85rem;padding:0 4px">Suporta HTTP e magnet links. O arquivo será salvo diretamente no seu PikPak.</p>
+      <p style="color:#666;font-size:0.83rem;padding:0 4px">Suporta HTTP e magnet links. O arquivo será salvo diretamente no seu PikPak.</p>
     </div>
 
+    <!-- Transfers panel -->
+    <div id="panel-transfers" class="panel">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <h3 style="color:#7c6bff;font-size:1rem">☁️ Transferências PikPak → Dropbox</h3>
+        <button class="btn btn-secondary btn-sm" onclick="loadTransfers()">↻ Atualizar</button>
+      </div>
+      <div id="transfer-list-container"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
+    </div>
+
+    <!-- Tasks panel -->
     <div id="panel-tasks" class="panel">
       <div class="add-task-form">
         <h3>📋 Adicionar tarefa na fila</h3>
@@ -174,36 +228,53 @@
 <script>
 const API = '';
 let TOKEN = localStorage.getItem('pikpak_token') || '';
+let DBOX_TOKEN = localStorage.getItem('dbox_token') || '';
 let currentParentId = '';
 let breadcrumbStack = [];
 let allFiles = [];
 let selectedIds = new Set();
+let transferPollInterval = null;
 
 window.onload = () => {
-  if (TOKEN) { updateStatus(true); loadFiles(); loadTasks(); }
+  if (TOKEN) { updateStatus(true); loadFiles(); }
+  if (DBOX_TOKEN) {
+    document.getElementById('dbox-token-input').value = '••••••••';
+    updateDboxStatus(true);
+  }
 };
 
-// ── Modal ──
+// ── Dropbox token ──
+function saveDboxToken() {
+  const v = document.getElementById('dbox-token-input').value.trim();
+  if (!v || v === '••••••••') { showAlert('Cole o token do Dropbox.', 'error'); return; }
+  DBOX_TOKEN = v;
+  localStorage.setItem('dbox_token', DBOX_TOKEN);
+  document.getElementById('dbox-token-input').value = '••••••••';
+  updateDboxStatus(true);
+  showAlert('Token Dropbox salvo!', 'success');
+}
+function updateDboxStatus(ok) {
+  const el = document.getElementById('dbox-status');
+  el.textContent = ok ? 'Dropbox: conectado' : 'Dropbox: —';
+  el.className = ok ? 'badge dbox-connected' : 'badge dbox-disconnected';
+}
+
+// ── PikPak Modal ──
 function openLoginModal() { document.getElementById('login-modal').classList.add('open'); }
 function closeLoginModal() { document.getElementById('login-modal').classList.remove('open'); }
 function closeModalOutside(e) { if (e.target === document.getElementById('login-modal')) closeLoginModal(); }
 function switchModalTab(tab) {
-  document.querySelectorAll('.modal-tab').forEach((t,i) => t.classList.toggle('active', ['token','email'][i] === tab));
+  document.querySelectorAll('.modal-tab').forEach((t, i) => t.classList.toggle('active', ['token','email'][i] === tab));
   document.querySelectorAll('.modal-pane').forEach(p => p.classList.remove('active'));
   document.getElementById('modal-pane-' + tab).classList.add('active');
 }
-
 function connectToken() {
   const t = document.getElementById('token-input').value.trim();
   if (!t) { showAlert('Cole o token primeiro.', 'error'); return; }
-  TOKEN = t;
-  localStorage.setItem('pikpak_token', TOKEN);
-  closeLoginModal();
-  updateStatus(true);
-  loadFiles(); loadTasks();
+  TOKEN = t; localStorage.setItem('pikpak_token', TOKEN);
+  closeLoginModal(); updateStatus(true); loadFiles();
   showAlert('Conectado!', 'success');
 }
-
 async function loginWithEmail() {
   const email = document.getElementById('login-email').value.trim();
   const pw = document.getElementById('login-password').value;
@@ -219,22 +290,14 @@ async function loginWithEmail() {
     const data = await r.json();
     const token = data.access_token || (data.data && data.data.access_token);
     if (!token) throw new Error(data.error || data.message || 'Login falhou');
-    TOKEN = token;
-    localStorage.setItem('pikpak_token', TOKEN);
-    closeLoginModal();
-    updateStatus(true);
-    loadFiles(); loadTasks();
+    TOKEN = token; localStorage.setItem('pikpak_token', TOKEN);
+    closeLoginModal(); updateStatus(true); loadFiles();
     showAlert('Login realizado!', 'success');
-  } catch(e) {
-    errEl.textContent = String(e); errEl.style.display='block';
-  } finally {
-    btn.textContent = 'Entrar'; btn.disabled = false;
-  }
+  } catch(e) { errEl.textContent = String(e); errEl.style.display='block'; }
+  finally { btn.textContent = 'Entrar'; btn.disabled = false; }
 }
-
 function disconnect() {
-  TOKEN = '';
-  localStorage.removeItem('pikpak_token');
+  TOKEN = ''; localStorage.removeItem('pikpak_token');
   updateStatus(false);
   document.getElementById('file-list-container').innerHTML = '<div class="empty">Conecte-se primeiro.</div>';
 }
@@ -242,16 +305,20 @@ function updateStatus(ok) {
   const el = document.getElementById('conn-status');
   el.textContent = ok ? 'conectado' : 'desconectado';
   el.style.color = ok ? '#4caf50' : '#e74c3c';
-  const userEl = document.getElementById('conn-user');
-  if (userEl) userEl.textContent = ok ? 'Token ativo' : '';
 }
+
+// ── Tabs ──
 function switchTab(name) {
-  const panels = ['files','offline','tasks'];
+  const panels = ['files','offline','transfers','tasks'];
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', panels[i] === name));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + name).classList.add('active');
   if (name === 'tasks') loadTasks();
+  if (name === 'transfers') { loadTransfers(); startTransferPoll(); }
+  else stopTransferPoll();
 }
+
+// ── Files ──
 async function loadFiles(parentId) {
   if (parentId === undefined) parentId = currentParentId;
   if (!TOKEN) return;
@@ -259,7 +326,9 @@ async function loadFiles(parentId) {
   document.getElementById('file-list-container').innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
   selectedIds.clear(); updateSelBar();
   try {
-    const r = await fetch(API + '/api/files?parent_id=' + encodeURIComponent(parentId), { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const r = await fetch(API + '/api/files?parent_id=' + encodeURIComponent(parentId), {
+      headers: { Authorization: 'Bearer ' + TOKEN }
+    });
     const data = await r.json();
     if (data.error) { showAlert(data.error, 'error'); return; }
     allFiles = data.files || [];
@@ -267,23 +336,23 @@ async function loadFiles(parentId) {
   } catch(e) { showAlert('Erro: ' + e, 'error'); }
 }
 function navigateTo(id, name) {
-  if (id === '') { breadcrumbStack = []; }
-  else { breadcrumbStack.push({ id, name }); }
-  renderBreadcrumb();
-  loadFiles(id);
+  if (id === '') breadcrumbStack = [];
+  else breadcrumbStack.push({ id, name });
+  renderBreadcrumb(); loadFiles(id);
 }
 function navTo(idx) {
   breadcrumbStack = breadcrumbStack.slice(0, idx + 1);
-  renderBreadcrumb();
-  loadFiles(breadcrumbStack[idx].id);
+  renderBreadcrumb(); loadFiles(breadcrumbStack[idx].id);
 }
 function renderBreadcrumb() {
   const el = document.getElementById('breadcrumb');
-  let html = '<span onclick="navigateTo(\'\',' + "'Root'" + ')">🏠 Root</span>';
+  let html = '<span onclick="navigateTo(\'\',\'Root\')">🏠 Root</span>';
   breadcrumbStack.forEach((b, i) => {
     html += '<span class="sep">/</span>';
-    if (i < breadcrumbStack.length - 1) html += '<span onclick="navTo(' + i + ')">' + esc(b.name) + '</span>';
-    else html += '<span style="color:#e0e0e0">' + esc(b.name) + '</span>';
+    if (i < breadcrumbStack.length - 1)
+      html += '<span onclick="navTo(' + i + ')">' + esc(b.name) + '</span>';
+    else
+      html += '<span style="color:#e0e0e0">' + esc(b.name) + '</span>';
   });
   el.innerHTML = html;
 }
@@ -292,7 +361,10 @@ function filterFiles() {
   renderFiles(allFiles.filter(f => f.name.toLowerCase().includes(q)));
 }
 function renderFiles(files) {
-  if (!files.length) { document.getElementById('file-list-container').innerHTML = '<div class="empty">Pasta vazia.</div>'; return; }
+  if (!files.length) {
+    document.getElementById('file-list-container').innerHTML = '<div class="empty">Pasta vazia.</div>';
+    return;
+  }
   const rows = files.map(f => {
     const isFolder = f.kind === 'drive#folder';
     const icon = isFolder ? '📁' : fileIcon(f.name);
@@ -300,19 +372,37 @@ function renderFiles(files) {
     const nameEl = isFolder
       ? '<span class="folder-name" onclick="navigateTo(\'' + f.id + '\',\'' + esc(f.name) + '\')">' + icon + ' ' + esc(f.name) + '</span>'
       : '<span>' + icon + ' ' + esc(f.name) + '</span>';
-    const dl = !isFolder ? '<button class="btn btn-secondary btn-sm" onclick="openDownload(\'' + f.id + '\')">⬇</button>' : '';
-    return '<tr><td><input type="checkbox" class="checkbox" onchange="toggleSel(\'' + f.id + '\',this)"/></td><td>' + nameEl + '</td><td class="size">' + size + '</td><td><div class="actions">' + dl + '<button class="btn btn-danger btn-sm" onclick="delSingle(\'' + f.id + '\')">🗑</button></div></td></tr>';
+    const dlBtn   = !isFolder ? '<button class="btn btn-secondary btn-sm" title="Download" onclick="openDownload(\'' + f.id + '\')">⬇</button>' : '';
+    const dboxBtn = !isFolder ? '<button class="btn btn-dropbox btn-sm" title="Enviar para Dropbox" onclick="openDropboxModal(\'' + f.id + '\',\'' + esc(f.name) + '\',' + (f.size||0) + ')">📤</button>' : '';
+    return '<tr><td><input type="checkbox" class="checkbox" onchange="toggleSel(\'' + f.id + '\',this)"/></td><td>' + nameEl + '</td><td class="size">' + size + '</td><td><div class="actions">' + dlBtn + dboxBtn + '<button class="btn btn-danger btn-sm" onclick="delSingle(\'' + f.id + '\')">🗑</button></div></td></tr>';
   }).join('');
-  document.getElementById('file-list-container').innerHTML = '<table><thead><tr><th><input type="checkbox" class="checkbox" onchange="selAll(this)"/></th><th>Nome</th><th>Tamanho</th><th>Ações</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  document.getElementById('file-list-container').innerHTML =
+    '<table><thead><tr><th><input type="checkbox" class="checkbox" onchange="selAll(this)"/></th><th>Nome</th><th>Tamanho</th><th>Ações</th></tr></thead><tbody>' + rows + '</tbody></table>';
 }
 function toggleSel(id, cb) { if (cb.checked) selectedIds.add(id); else selectedIds.delete(id); updateSelBar(); }
-function selAll(cb) { document.querySelectorAll('tbody .checkbox').forEach(c => { c.checked = cb.checked; }); if (cb.checked) allFiles.forEach(f => selectedIds.add(f.id)); else selectedIds.clear(); updateSelBar(); }
-function updateSelBar() { const bar = document.getElementById('sel-bar'); bar.classList.toggle('visible', selectedIds.size > 0); document.getElementById('sel-count').textContent = selectedIds.size + ' selecionado(s)'; }
-async function deleteSelected() { if (!selectedIds.size) return; if (!confirm('Excluir ' + selectedIds.size + ' item(ns)?')) return; await delIds([...selectedIds]); }
+function selAll(cb) {
+  document.querySelectorAll('tbody .checkbox').forEach(c => { c.checked = cb.checked; });
+  if (cb.checked) allFiles.forEach(f => selectedIds.add(f.id)); else selectedIds.clear();
+  updateSelBar();
+}
+function updateSelBar() {
+  const bar = document.getElementById('sel-bar');
+  bar.classList.toggle('visible', selectedIds.size > 0);
+  document.getElementById('sel-count').textContent = selectedIds.size + ' selecionado(s)';
+}
+async function deleteSelected() {
+  if (!selectedIds.size) return;
+  if (!confirm('Excluir ' + selectedIds.size + ' item(ns)?')) return;
+  await delIds([...selectedIds]);
+}
 async function delSingle(id) { if (!confirm('Excluir este item?')) return; await delIds([id]); }
 async function delIds(ids) {
   try {
-    const r = await fetch(API + '/api/files/delete', { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+    const r = await fetch(API + '/api/files/delete', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    });
     const data = await r.json();
     if (data.error) { showAlert(data.error, 'error'); return; }
     showAlert('Excluído!', 'success'); loadFiles();
@@ -320,24 +410,123 @@ async function delIds(ids) {
 }
 async function openDownload(fileId) {
   try {
-    const r = await fetch(API + '/api/files/' + fileId + '/download', { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const r = await fetch(API + '/api/files/' + fileId + '/download', {
+      headers: { Authorization: 'Bearer ' + TOKEN }
+    });
     const data = await r.json();
-    const url = data && (data.web_content_link || (data.medias && data.medias[0] && data.medias[0].link && data.medias[0].link.url));
-    if (url) window.open(url, '_blank'); else showAlert('Link não disponível.', 'error');
+    const url = data && (
+      data.web_content_link ||
+      (data.medias && data.medias[0] && data.medias[0].link && data.medias[0].link.url)
+    );
+    if (url) window.open(url, '_blank');
+    else showAlert('Link não disponível.', 'error');
   } catch(e) { showAlert('Erro: ' + e, 'error'); }
 }
+
+// ── Dropbox modal ──
+function openDropboxModal(fileId, fileName, fileSize) {
+  if (!DBOX_TOKEN) {
+    showAlert('Configure o token do Dropbox primeiro.', 'error'); return;
+  }
+  if (!TOKEN) { showAlert('Conecte ao PikPak primeiro.', 'error'); return; }
+  document.getElementById('dbox-file-id').value = fileId;
+  document.getElementById('dbox-file-size').value = fileSize;
+  document.getElementById('dbox-file-name-display').value = fileName;
+  document.getElementById('dbox-dest-path').value = '/PikPak/' + fileName;
+  document.getElementById('dropbox-modal').classList.add('open');
+}
+function closeDropboxModal() { document.getElementById('dropbox-modal').classList.remove('open'); }
+function closeDropboxModalOutside(e) { if (e.target === document.getElementById('dropbox-modal')) closeDropboxModal(); }
+async function confirmSendDropbox() {
+  const fileId   = document.getElementById('dbox-file-id').value;
+  const fileName = document.getElementById('dbox-file-name-display').value;
+  const fileSize = document.getElementById('dbox-file-size').value;
+  const destPath = document.getElementById('dbox-dest-path').value.trim();
+  if (!destPath) { showAlert('Informe o destino no Dropbox.', 'error'); return; }
+  const btn = document.getElementById('dbox-send-btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const r = await fetch(API + '/api/transfer', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file_id: fileId,
+        file_name: fileName,
+        file_size: fileSize,
+        dropbox_path: destPath,
+        dropbox_token: DBOX_TOKEN
+      })
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    closeDropboxModal();
+    showAlert('Transferência iniciada! Acompanhe na aba ☁️ Transferências.', 'success', 5000);
+    // Switch to transfers tab
+    switchTab('transfers');
+  } catch(e) { showAlert('Erro: ' + e, 'error'); }
+  finally { btn.disabled = false; btn.textContent = '📤 Enviar'; }
+}
+
+// ── Transfers ──
+async function loadTransfers() {
+  const c = document.getElementById('transfer-list-container');
+  if (!c) return;
+  try {
+    const r = await fetch(API + '/api/transfer');
+    const transfers = await r.json();
+    if (!Array.isArray(transfers) || !transfers.length) {
+      c.innerHTML = '<div class="empty">Nenhuma transferência ainda. Use o botão 📤 nos arquivos.</div>';
+      return;
+    }
+    const rows = transfers.map(t => {
+      const ts = t.date_created ? new Date(t.date_created).toLocaleString('pt-BR') : '';
+      const errHtml = t.error_msg ? '<div class="xfer-err" title="' + esc(t.error_msg) + '">⚠ ' + esc(t.error_msg.slice(0, 80)) + (t.error_msg.length > 80 ? '...' : '') + '</div>' : '';
+      const spinHtml = (t.status === 'transferring' || t.status === 'pending') ? '<span class="spinner"></span>' : '';
+      return '<div class="xfer-item">' +
+        '<div style="display:flex;align-items:center;gap:6px">' + spinHtml + '<span class="status-badge status-' + t.status + '">' + t.status + '</span></div>' +
+        '<div class="xfer-info">' +
+          '<div class="xfer-name">' + fileIcon(t.file_name || '') + ' ' + esc(t.file_name || '—') + (t.file_size && t.file_size !== '0' ? ' <span class="size">(' + fmtSize(parseInt(t.file_size)) + ')</span>' : '') + '</div>' +
+          '<div class="xfer-dest">→ ' + esc(t.dropbox_path || '') + '</div>' +
+          errHtml +
+        '</div>' +
+        '<span class="xfer-ts">' + ts + '</span>' +
+        '<button class="btn btn-danger btn-sm" onclick="deleteTransfer(' + t.id + ')">🗑</button>' +
+      '</div>';
+    }).join('');
+    c.innerHTML = '<div class="task-list">' + rows + '</div>';
+  } catch(e) { c.innerHTML = '<div class="empty">Erro ao carregar transferências.</div>'; }
+}
+async function deleteTransfer(id) {
+  try { await fetch(API + '/api/transfer/' + id, { method: 'DELETE' }); loadTransfers(); }
+  catch(e) {}
+}
+function startTransferPoll() {
+  stopTransferPoll();
+  transferPollInterval = setInterval(loadTransfers, 4000);
+}
+function stopTransferPoll() {
+  if (transferPollInterval) { clearInterval(transferPollInterval); transferPollInterval = null; }
+}
+
+// ── Offline ──
 async function addOfflineDownload() {
   if (!TOKEN) { showAlert('Conecte primeiro.', 'error'); return; }
   const url = document.getElementById('offline-url').value.trim();
   if (!url) { showAlert('Cole a URL.', 'error'); return; }
   try {
-    const r = await fetch(API + '/api/offline', { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+    const r = await fetch(API + '/api/offline', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
     const data = await r.json();
     if (data.error) { showAlert(data.error, 'error'); return; }
     document.getElementById('offline-url').value = '';
     showAlert('Download offline adicionado!', 'success');
   } catch(e) { showAlert('Erro: ' + e, 'error'); }
 }
+
+// ── Tasks ──
 async function loadTasks() {
   const c = document.getElementById('task-list-container');
   if (!c) return;
@@ -345,14 +534,23 @@ async function loadTasks() {
     const r = await fetch(API + '/api/tasks');
     const tasks = await r.json();
     if (!tasks.length) { c.innerHTML = '<div class="empty">Nenhuma tarefa.</div>'; return; }
-    c.innerHTML = '<div class="task-list">' + tasks.map(t => '<div class="task-item"><span class="status-badge status-' + t.status + '">' + t.status + '</span><span class="task-url" title="' + esc(t.url) + '">' + esc(t.url) + '</span><span style="font-size:0.75rem;color:#555">' + (t.date_created ? new Date(t.date_created).toLocaleString('pt-BR') : '') + '</span><button class="btn btn-danger btn-sm" onclick="deleteTask(' + t.id + ')">🗑</button></div>').join('') + '</div>';
+    c.innerHTML = '<div class="task-list">' + tasks.map(t =>
+      '<div class="task-item"><span class="status-badge status-' + t.status + '">' + t.status + '</span>' +
+      '<span class="task-url" title="' + esc(t.url) + '">' + esc(t.url) + '</span>' +
+      '<span style="font-size:0.73rem;color:#555">' + (t.date_created ? new Date(t.date_created).toLocaleString('pt-BR') : '') + '</span>' +
+      '<button class="btn btn-danger btn-sm" onclick="deleteTask(' + t.id + ')">🗑</button></div>'
+    ).join('') + '</div>';
   } catch(e) { c.innerHTML = '<div class="empty">Erro ao carregar.</div>'; }
 }
 async function addTask() {
   const url = document.getElementById('task-url').value.trim();
   if (!url) { showAlert('URL necessária.', 'error'); return; }
   try {
-    const r = await fetch(API + '/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+    const r = await fetch(API + '/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
     const data = await r.json();
     if (data.error) { showAlert(data.error, 'error'); return; }
     document.getElementById('task-url').value = '';
@@ -362,14 +560,25 @@ async function addTask() {
 async function deleteTask(id) {
   try { await fetch(API + '/api/tasks/' + id, { method: 'DELETE' }); loadTasks(); } catch(e) {}
 }
+
+// ── Utils ──
 function showAlert(msg, type, ms) {
   if (!ms) ms = 4000;
   const el = document.getElementById('alert-box');
   el.innerHTML = '<div class="alert alert-' + type + '">' + msg + '</div>';
   setTimeout(() => { el.innerHTML = ''; }, ms);
 }
-function fmtSize(b) { if (!b) return '—'; const u=['B','KB','MB','GB','TB']; let i=0,v=b; while(v>=1024&&i<4){v/=1024;i++;} return v.toFixed(1)+' '+u[i]; }
-function fileIcon(n) { const e=(n.split('.').pop()||'').toLowerCase(); const m={mp4:'🎬',mkv:'🎬',avi:'🎬',mov:'🎬',mp3:'🎵',flac:'🎵',wav:'🎵',jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',pdf:'📄',zip:'📦',rar:'📦'}; return m[e]||'📄'; }
+function fmtSize(b) {
+  if (!b) return '—';
+  const u = ['B','KB','MB','GB','TB']; let i = 0, v = b;
+  while (v >= 1024 && i < 4) { v /= 1024; i++; }
+  return v.toFixed(1) + ' ' + u[i];
+}
+function fileIcon(n) {
+  const e = (n.split('.').pop() || '').toLowerCase();
+  const m = { mp4:'🎬', mkv:'🎬', avi:'🎬', mov:'🎬', mp3:'🎵', flac:'🎵', wav:'🎵', jpg:'🖼', jpeg:'🖼', png:'🖼', gif:'🖼', pdf:'📄', zip:'📦', rar:'📦', '7z':'📦' };
+  return m[e] || '📄';
+}
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 </body>
