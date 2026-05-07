@@ -229,6 +229,16 @@
 const API = '';
 let TOKEN = localStorage.getItem('pikpak_token') || '';
 let DBOX_TOKEN = localStorage.getItem('dbox_token') || '';
+
+// Safe JSON parser — never throws on HTML error pages
+async function safeJson(r) {
+  const text = await r.text();
+  try { return JSON.parse(text); }
+  catch {
+    const preview = text.replace(/<[^>]*>/g, '').trim().slice(0, 120);
+    throw new Error('Servidor retornou HTML em vez de JSON. ' + (preview || 'HTTP ' + r.status));
+  }
+}
 let currentParentId = '';
 let breadcrumbStack = [];
 let allFiles = [];
@@ -287,7 +297,7 @@ async function loginWithEmail() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ username: email, password: pw })
     });
-    const data = await r.json();
+    const data = await safeJson(r);
     const token = data.access_token || (data.data && data.data.access_token);
     if (!token) throw new Error(data.error || data.message || 'Login falhou');
     TOKEN = token; localStorage.setItem('pikpak_token', TOKEN);
@@ -329,7 +339,7 @@ async function loadFiles(parentId) {
     const r = await fetch(API + '/api/files?parent_id=' + encodeURIComponent(parentId), {
       headers: { Authorization: 'Bearer ' + TOKEN }
     });
-    const data = await r.json();
+    const data = await safeJson(r);
     if (data.error) { showAlert(data.error, 'error'); return; }
     allFiles = data.files || [];
     renderFiles(allFiles);
@@ -403,7 +413,7 @@ async function delIds(ids) {
       headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids })
     });
-    const data = await r.json();
+    const data = await safeJson(r);
     if (data.error) { showAlert(data.error, 'error'); return; }
     showAlert('Excluído!', 'success'); loadFiles();
   } catch(e) { showAlert('Erro: ' + e, 'error'); }
@@ -413,7 +423,7 @@ async function openDownload(fileId) {
     const r = await fetch(API + '/api/files/' + fileId + '/download', {
       headers: { Authorization: 'Bearer ' + TOKEN }
     });
-    const data = await r.json();
+    const data = await safeJson(r);
     const url = data && (
       data.web_content_link ||
       (data.medias && data.medias[0] && data.medias[0].link && data.medias[0].link.url)
@@ -457,7 +467,7 @@ async function confirmSendDropbox() {
         dropbox_token: DBOX_TOKEN
       })
     });
-    const data = await r.json();
+    const data = await safeJson(r);
     if (data.error) throw new Error(data.error);
     closeDropboxModal();
     showAlert('Transferência iniciada! Acompanhe na aba ☁️ Transferências.', 'success', 5000);
@@ -473,7 +483,7 @@ async function loadTransfers() {
   if (!c) return;
   try {
     const r = await fetch(API + '/api/transfer');
-    const transfers = await r.json();
+    const transfers = await safeJson(r);
     if (!Array.isArray(transfers) || !transfers.length) {
       c.innerHTML = '<div class="empty">Nenhuma transferência ainda. Use o botão 📤 nos arquivos.</div>';
       return;
@@ -519,7 +529,7 @@ async function addOfflineDownload() {
       headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
-    const data = await r.json();
+    const data = await safeJson(r);
     if (data.error) { showAlert(data.error, 'error'); return; }
     document.getElementById('offline-url').value = '';
     showAlert('Download offline adicionado!', 'success');
@@ -532,7 +542,7 @@ async function loadTasks() {
   if (!c) return;
   try {
     const r = await fetch(API + '/api/tasks');
-    const tasks = await r.json();
+    const tasks = await safeJson(r);
     if (!tasks.length) { c.innerHTML = '<div class="empty">Nenhuma tarefa.</div>'; return; }
     c.innerHTML = '<div class="task-list">' + tasks.map(t =>
       '<div class="task-item"><span class="status-badge status-' + t.status + '">' + t.status + '</span>' +
@@ -551,7 +561,7 @@ async function addTask() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
-    const data = await r.json();
+    const data = await safeJson(r);
     if (data.error) { showAlert(data.error, 'error'); return; }
     document.getElementById('task-url').value = '';
     showAlert('Tarefa adicionada!', 'success'); loadTasks();
