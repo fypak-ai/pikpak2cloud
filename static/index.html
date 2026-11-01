@@ -226,7 +226,7 @@
   </div>
 
 <script>
-const API = '';
+const API = '/pk';
 let TOKEN = localStorage.getItem('pikpak_token') || '';
 let DBOX_TOKEN = localStorage.getItem('dbox_token') || '';
 
@@ -240,6 +240,36 @@ async function safeJson(r) {
   }
 }
 let currentParentId = '';
+
+// Token refresh: PikPak access tokens expiram rápido; usa o refresh_token salvo.
+async function getFreshToken() {
+  const rt = localStorage.getItem('pikpak_refresh');
+  if (!rt) return null;
+  try {
+    const r = await fetch(API + '/api/auth/refresh', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ refresh_token: rt })
+    });
+    const data = await safeJson(r);
+    const t = data.access_token;
+    if (!t) return null;
+    TOKEN = t; localStorage.setItem('pikpak_token', t);
+    if (data.refresh_token) localStorage.setItem('pikpak_refresh', data.refresh_token);
+    return t;
+  } catch { return null; }
+}
+async function authFetch(url, opts = {}) {
+  opts.headers = Object.assign({}, opts.headers, { Authorization: 'Bearer ' + TOKEN });
+  let r = await fetch(url, opts);
+  if (r.status === 401) {
+    const fresh = await getFreshToken();
+    if (fresh) {
+      opts.headers.Authorization = 'Bearer ' + fresh;
+      r = await fetch(url, opts);
+    }
+  }
+  return r;
+}
 let breadcrumbStack = [];
 let allFiles = [];
 let selectedIds = new Set();
@@ -301,13 +331,14 @@ async function loginWithEmail() {
     const token = data.access_token || (data.data && data.data.access_token);
     if (!token) throw new Error(data.error || data.message || 'Login falhou');
     TOKEN = token; localStorage.setItem('pikpak_token', TOKEN);
+    if (data.refresh_token) localStorage.setItem('pikpak_refresh', data.refresh_token);
     closeLoginModal(); updateStatus(true); loadFiles();
     showAlert('Login realizado!', 'success');
   } catch(e) { errEl.textContent = String(e); errEl.style.display='block'; }
   finally { btn.textContent = 'Entrar'; btn.disabled = false; }
 }
 function disconnect() {
-  TOKEN = ''; localStorage.removeItem('pikpak_token');
+  TOKEN = ''; localStorage.removeItem('pikpak_token'); localStorage.removeItem('pikpak_refresh');
   updateStatus(false);
   document.getElementById('file-list-container').innerHTML = '<div class="empty">Conecte-se primeiro.</div>';
 }
@@ -336,9 +367,7 @@ async function loadFiles(parentId) {
   document.getElementById('file-list-container').innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
   selectedIds.clear(); updateSelBar();
   try {
-    const r = await fetch(API + '/api/files?parent_id=' + encodeURIComponent(parentId), {
-      headers: { Authorization: 'Bearer ' + TOKEN }
-    });
+    const r = await authFetch(API + '/api/files?parent_id=' + encodeURIComponent(parentId));
     const data = await safeJson(r);
     if (data.error) { showAlert(data.error, 'error'); return; }
     allFiles = data.files || [];
@@ -408,9 +437,9 @@ async function deleteSelected() {
 async function delSingle(id) { if (!confirm('Excluir este item?')) return; await delIds([id]); }
 async function delIds(ids) {
   try {
-    const r = await fetch(API + '/api/files/delete', {
+    const r = await authFetch(API + '/api/files/delete', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids })
     });
     const data = await safeJson(r);
@@ -420,9 +449,7 @@ async function delIds(ids) {
 }
 async function openDownload(fileId) {
   try {
-    const r = await fetch(API + '/api/files/' + fileId + '/download', {
-      headers: { Authorization: 'Bearer ' + TOKEN }
-    });
+    const r = await authFetch(API + '/api/files/' + fileId + '/download');
     const data = await safeJson(r);
     const url = data && (
       data.web_content_link ||
@@ -456,9 +483,9 @@ async function confirmSendDropbox() {
   const btn = document.getElementById('dbox-send-btn');
   btn.disabled = true; btn.textContent = 'Enviando...';
   try {
-    const r = await fetch(API + '/api/transfer', {
+    const r = await authFetch(API + '/api/transfer', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         file_id: fileId,
         file_name: fileName,
@@ -524,9 +551,9 @@ async function addOfflineDownload() {
   const url = document.getElementById('offline-url').value.trim();
   if (!url) { showAlert('Cole a URL.', 'error'); return; }
   try {
-    const r = await fetch(API + '/api/offline', {
+    const r = await authFetch(API + '/api/offline', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
     const data = await safeJson(r);

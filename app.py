@@ -64,7 +64,7 @@ def pikpak_get_captcha_token(device_id: str, username: str = "") -> str:
         "action": "POST:/v1/auth/signin",
         "device_id": device_id,
         "captcha_token": "",
-        "meta": {"phone_number": username, "email": username},
+        "meta": {"username": username},
     }
     headers = {
         "Content-Type": "application/json",
@@ -98,7 +98,39 @@ def pikpak_login(username: str, password: str):
         "Accept": "*/*",
     }
     r = requests.post(url, json=payload, headers=headers, timeout=30)
-    r.raise_for_status()
+    if r.status_code != 200:
+        try:
+            err = r.json()
+            desc = err.get("error_description") or err.get("error") or r.text
+            if "invalid_account" in str(err.get("error", "")):
+                return {"_error": "Usuário ou senha incorretos."}
+            return {"_error": f"PikPak recusou o login: {desc}"}
+        except ValueError:
+            return {"_error": f"PikPak respondeu {r.status_code}"}
+    return r.json()
+
+
+def pikpak_refresh(refresh_token: str):
+    import uuid
+    device_id = uuid.uuid4().hex
+    url = f"{PIKPAK_API}/v1/auth/token"
+    payload = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0",
+        "X-Device-ID": device_id,
+        "X-Client-ID": CLIENT_ID,
+        "Referer": "https://pc.mypikpak.com",
+        "Accept": "*/*",
+    }
+    r = requests.post(url, json=payload, headers=headers, timeout=30)
+    if r.status_code != 200:
+        return {"_error": f"PikPak recusou o refresh ({r.status_code})"}
     return r.json()
 
 
@@ -376,6 +408,23 @@ def auth_login():
         return jsonify({"error": "Provide token or username+password"}), 400
     try:
         result = pikpak_login(username, password)
+        if result.get("_error"):
+            return jsonify({"error": result["_error"]}), 400
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/auth/refresh", methods=["POST"])
+def auth_refresh():
+    data = request.json or {}
+    rt = data.get("refresh_token")
+    if not rt:
+        return jsonify({"error": "refresh_token required"}), 400
+    try:
+        result = pikpak_refresh(rt)
+        if result.get("_error"):
+            return jsonify({"error": result["_error"]}), 401
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
