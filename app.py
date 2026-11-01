@@ -150,7 +150,16 @@ def pikpak_list_files(token: str, parent_id: str = "", page_token: str = ""):
     if page_token:
         params["page_token"] = page_token
     r = requests.get(url, params=params, headers=pikpak_headers(token), timeout=30)
-    r.raise_for_status()
+    if r.status_code != 200:
+        try:
+            err = r.json()
+            code = err.get("error_code")
+            desc = err.get("error_description") or err.get("error")
+            if code == 16 or err.get("error") == "unauthenticated":
+                return {"_auth_error": True, "error": "Sessão PikPak expirada. Faça login novamente."}
+            return {"_error": f"PikPak: {desc}"}
+        except ValueError:
+            return {"_error": f"PikPak respondeu {r.status_code}"}
     return r.json()
 
 
@@ -438,7 +447,12 @@ def list_files():
     parent_id = request.args.get("parent_id", "")
     page_token = request.args.get("page_token", "")
     try:
-        return jsonify(pikpak_list_files(token, parent_id, page_token))
+        result = pikpak_list_files(token, parent_id, page_token)
+        if result.get("_auth_error"):
+            return jsonify(result), 401
+        if result.get("_error"):
+            return jsonify(result), 400
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
