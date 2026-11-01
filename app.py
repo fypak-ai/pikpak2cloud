@@ -107,7 +107,9 @@ def pikpak_login(username: str, password: str):
             return {"_error": f"PikPak recusou o login: {desc}"}
         except ValueError:
             return {"_error": f"PikPak respondeu {r.status_code}"}
-    return r.json()
+    result = r.json()
+    result["device_id"] = device_id
+    return result
 
 
 def pikpak_refresh(refresh_token: str):
@@ -134,11 +136,14 @@ def pikpak_refresh(refresh_token: str):
     return r.json()
 
 
-def pikpak_headers(token: str):
-    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+def pikpak_headers(token: str, device_id: str = ""):
+    h = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    if device_id:
+        h["X-Device-ID"] = device_id
+    return h
 
 
-def pikpak_list_files(token: str, parent_id: str = "", page_token: str = ""):
+def pikpak_list_files(token: str, parent_id: str = "", page_token: str = "", device_id: str = ""):
     url = f"{PIKPAK_DRIVE_API}/drive/v1/files"
     params = {
         "parent_id": parent_id,
@@ -149,7 +154,7 @@ def pikpak_list_files(token: str, parent_id: str = "", page_token: str = ""):
     }
     if page_token:
         params["page_token"] = page_token
-    r = requests.get(url, params=params, headers=pikpak_headers(token), timeout=30)
+    r = requests.get(url, params=params, headers=pikpak_headers(token, device_id), timeout=30)
     if r.status_code != 200:
         try:
             err = r.json()
@@ -215,6 +220,10 @@ def _get_pikpak_token():
     if auth.startswith("Bearer "):
         return auth[7:]
     return None
+
+
+def _get_device_id():
+    return request.headers.get("X-Device-ID", "")
 
 
 # ─── Dropbox API helpers ─────────────────────────
@@ -447,7 +456,7 @@ def list_files():
     parent_id = request.args.get("parent_id", "")
     page_token = request.args.get("page_token", "")
     try:
-        result = pikpak_list_files(token, parent_id, page_token)
+        result = pikpak_list_files(token, parent_id, page_token, request.headers.get("X-Device-ID", ""))
         if result.get("_auth_error"):
             return jsonify(result), 401
         if result.get("_error"):
