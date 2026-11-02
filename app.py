@@ -112,9 +112,9 @@ def pikpak_login(username: str, password: str):
     return result
 
 
-def pikpak_refresh(refresh_token: str):
-    import uuid
-    device_id = uuid.uuid4().hex
+def pikpak_refresh(refresh_token: str, device_id: str = ""):
+    if not device_id:
+        device_id = uuid.uuid4().hex
     url = f"{PIKPAK_API}/v1/auth/token"
     payload = {
         "client_id": CLIENT_ID,
@@ -132,8 +132,15 @@ def pikpak_refresh(refresh_token: str):
     }
     r = requests.post(url, json=payload, headers=headers, timeout=30)
     if r.status_code != 200:
-        return {"_error": f"PikPak recusou o refresh ({r.status_code})"}
-    return r.json()
+        try:
+            err = r.json()
+            desc = err.get("error_description") or err.get("error") or r.status_code
+        except ValueError:
+            desc = r.status_code
+        return {"_error": f"PikPak recusou o refresh: {desc}"}
+    result = r.json()
+    result["device_id"] = device_id
+    return result
 
 
 def pikpak_headers(token: str, device_id: str = ""):
@@ -440,7 +447,7 @@ def auth_refresh():
     if not rt:
         return jsonify({"error": "refresh_token required"}), 400
     try:
-        result = pikpak_refresh(rt)
+        result = pikpak_refresh(rt, request.headers.get("X-Device-ID", ""))
         if result.get("_error"):
             return jsonify({"error": result["_error"]}), 401
         return jsonify(result)
@@ -455,6 +462,7 @@ def list_files():
         return jsonify({"error": "Unauthenticated"}), 401
     parent_id = request.args.get("parent_id", "")
     page_token = request.args.get("page_token", "")
+    print(f"GET /api/files device_id={request.headers.get('X-Device-ID', '') or '(none)'}", flush=True)
     try:
         result = pikpak_list_files(token, parent_id, page_token, request.headers.get("X-Device-ID", ""))
         if result.get("_auth_error"):
